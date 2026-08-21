@@ -1,0 +1,21 @@
+*.iml
+.gradle
+/local.properties
+.idea/
+.kotlin/
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+
+# iOS / Xcode
+iosApp/*.xcodeproj
+xcuserdata/
+*.xcworkspace
+Pods/
+iosApp/build/
+
+# Signing
+*.jks
+*.keystore
