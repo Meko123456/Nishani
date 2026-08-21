@@ -9,11 +9,17 @@ struct NotesListView: View {
         NavigationStack {
             Group {
                 if store.notes.isEmpty {
-                    ContentUnavailableView(
-                        store.query.isEmpty ? "No notes yet" : "No matches",
-                        systemImage: "square.and.pencil",
-                        description: Text(store.query.isEmpty ? "Tap + to write one." : "Try a different search.")
-                    )
+                    VStack(spacing: 8) {
+                        Image(systemName: "square.and.pencil")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text(store.query.isEmpty ? "No notes yet" : "No matches")
+                            .font(.headline)
+                        Text(store.query.isEmpty ? "Tap + to write one." : "Try a different search.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
                         ForEach(store.notes, id: \.id) { note in
