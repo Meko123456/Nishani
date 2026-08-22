@@ -50,7 +50,9 @@ platform renders it natively (Compose `AnnotatedString`, SwiftUI `Text`).
 
 ## Status
 
-🚧 Day 1 — README-first. See [issues](../../issues) for the roadmap.
+✅ **v0.1.0** — markdown editor + live preview, search, autosave, share, and offline local
+storage, working on **Android** and **iOS** (native UIs over one shared Kotlin core). See
+[issues](../../issues) for what's next.
 
 ## License
 
