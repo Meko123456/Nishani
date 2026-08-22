@@ -45,4 +45,9 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         repo.delete(id)
         refresh()
     }
+
+    fun togglePin(id: String) {
+        repo.togglePin(id)
+        refresh()
+    }
 }

@@ -8,6 +8,7 @@ data class Note(
     val id: String,
     val body: String,
     val updatedAt: Long,
+    val pinned: Boolean = false,
 ) {
     /** Display title: the first non-blank line with leading markdown markers stripped. */
     val title: String

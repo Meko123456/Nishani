@@ -20,8 +20,14 @@ class NotesRepository(private val store: KeyValueStore) {
         store.putString(key, json.encodeToString(notes))
     }
 
-    /** Newest first. */
-    fun all(): List<Note> = load().sortedByDescending { it.updatedAt }
+    /** Pinned first, then newest first. */
+    fun all(): List<Note> = load().sortedWith(compareByDescending<Note> { it.pinned }.thenByDescending { it.updatedAt })
+
+    /** Flips the pinned flag on a note. */
+    fun togglePin(id: String) {
+        val n = get(id) ?: return
+        upsert(n.copy(pinned = !n.pinned))
+    }
 
     fun get(id: String): Note? = load().firstOrNull { it.id == id }
 

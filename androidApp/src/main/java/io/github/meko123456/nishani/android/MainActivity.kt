@@ -46,8 +46,9 @@ class MainActivity : ComponentActivity() {
                             editorInitial = vm.note(id)?.body ?: ""
                             isEditing = true
                         },
-                        onNew = {
-                            editingId = null
+                        onTogglePin = vm::togglePin,
+                            onNew = {
+                                editingId = null
                             editorInitial = ""
                             isEditing = true
                         },

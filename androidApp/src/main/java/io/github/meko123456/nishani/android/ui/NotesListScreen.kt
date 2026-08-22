@@ -1,6 +1,7 @@
 package io.github.meko123456.nishani.android.ui
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.meko123456.nishani.shared.Note
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NotesListScreen(
     notes: List<Note>,
@@ -34,6 +35,7 @@ fun NotesListScreen(
     onQuery: (String) -> Unit,
     onOpen: (String) -> Unit,
     onNew: () -> Unit,
+    onTogglePin: (String) -> Unit = {},
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Nishani") }) },
@@ -67,11 +69,13 @@ fun NotesListScreen(
                 LazyColumn(Modifier.fillMaxSize()) {
                     items(notes, key = { it.id }) { note ->
                         Column(
-                            Modifier.fillMaxWidth().clickable { onOpen(note.id) }.padding(16.dp),
+                            Modifier.fillMaxWidth()
+                                .combinedClickable(onClick = { onOpen(note.id) }, onLongClick = { onTogglePin(note.id) })
+                                .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(
-                                note.title,
+                                (if (note.pinned) "📌 " else "") + note.title,
                                 style = MaterialTheme.typography.titleMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
