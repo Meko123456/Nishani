@@ -36,9 +36,19 @@ fun NotesListScreen(
     onOpen: (String) -> Unit,
     onNew: () -> Unit,
     onTogglePin: (String) -> Unit = {},
+    onImport: () -> Unit = {},
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Nishani") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Nishani") },
+                actions = {
+                    androidx.compose.material3.IconButton(onClick = onImport) {
+                        Text("⬆", style = MaterialTheme.typography.titleMedium)
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onNew) {
                 Icon(Icons.Default.Add, contentDescription = "New note")

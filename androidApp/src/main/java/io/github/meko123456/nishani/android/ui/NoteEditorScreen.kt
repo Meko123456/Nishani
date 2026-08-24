@@ -1,6 +1,8 @@
 package io.github.meko123456.nishani.android.ui
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -45,6 +47,13 @@ fun NoteEditorScreen(
     var preview by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    // Export the note as a .md file via the Storage Access Framework.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/markdown"),
+    ) { uri ->
+        uri?.let { context.contentResolver.openOutputStream(it)?.use { os -> os.write(text.toByteArray()) } }
+    }
+
     // Debounced autosave: persist ~600ms after the last keystroke.
     LaunchedEffect(text) {
         delay(600)
@@ -72,6 +81,13 @@ fun NoteEditorScreen(
                         context.startActivity(Intent.createChooser(send, "Share note"))
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
+                    }
+                    IconButton(onClick = {
+                        val name = text.lineSequence().firstOrNull { it.isNotBlank() }
+                            ?.trim()?.trimStart('#', ' ')?.take(40)?.ifBlank { "note" } ?: "note"
+                        exportLauncher.launch("$name.md")
+                    }) {
+                        Text("md", style = MaterialTheme.typography.labelMedium)
                     }
                     if (canDelete) {
                         IconButton(onClick = onDelete) {

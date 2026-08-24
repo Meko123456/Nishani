@@ -3,8 +3,11 @@ package io.github.meko123456.nishani.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +28,21 @@ class MainActivity : ComponentActivity() {
                 var editingId by remember { mutableStateOf<String?>(null) }
                 var editorInitial by remember { mutableStateOf("") }
                 var isEditing by remember { mutableStateOf(false) }
+                val context = LocalContext.current
+
+                // Import a .md file into a new note via the Storage Access Framework.
+                val importLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.OpenDocument(),
+                ) { uri ->
+                    uri?.let {
+                        val body = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
+                        if (!body.isNullOrBlank()) {
+                            editingId = null
+                            editorInitial = body
+                            isEditing = true
+                        }
+                    }
+                }
 
                 BackHandler(enabled = isEditing) { isEditing = false }
 
@@ -48,10 +66,11 @@ class MainActivity : ComponentActivity() {
                         },
                         onTogglePin = vm::togglePin,
                             onNew = {
-                                editingId = null
+                            editingId = null
                             editorInitial = ""
                             isEditing = true
                         },
+                        onImport = { importLauncher.launch(arrayOf("text/*")) },
                     )
                 }
             }
