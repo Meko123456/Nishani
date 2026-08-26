@@ -23,6 +23,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.meko123456.nishani.shared.Note
@@ -44,7 +46,11 @@ fun NotesListScreen(
                 title = { Text("Nishani") },
                 actions = {
                     androidx.compose.material3.IconButton(onClick = onImport) {
-                        Text("⬆", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "⬆",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.clearAndSetSemantics { contentDescription = "Import a .md file" },
+                        )
                     }
                 },
             )

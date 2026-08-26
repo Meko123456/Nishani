@@ -28,6 +28,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -87,7 +89,11 @@ fun NoteEditorScreen(
                             ?.trim()?.trimStart('#', ' ')?.take(40)?.ifBlank { "note" } ?: "note"
                         exportLauncher.launch("$name.md")
                     }) {
-                        Text("md", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            "md",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.clearAndSetSemantics { contentDescription = "Export as .md file" },
+                        )
                     }
                     if (canDelete) {
                         IconButton(onClick = onDelete) {
