@@ -7,6 +7,15 @@ Write notes in markdown, preview them rendered, search across everything, and sh
 all stored locally on device. The parsing and data logic live once in shared Kotlin;
 the UI is **native on each platform** (Jetpack Compose on Android, SwiftUI on iOS).
 
+## Screenshots
+
+| Android — editor | Android — rendered preview | iOS — native SwiftUI |
+|:---:|:---:|:---:|
+| ![Editor](docs/android-editor.png) | ![Preview](docs/android-preview.png) | ![iOS](docs/ios-list.png) |
+
+*The middle shot is the shared Kotlin parser's output rendered by Compose. On the right, the
+same shared code — note titles and previews derived in Kotlin — driving a native SwiftUI list.*
+
 ## Architecture — Kotlin Multiplatform, native UI
 
 Deliberately **no shared UI** — only shared logic, like a well-factored KMM app should be:
