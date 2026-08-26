@@ -17,11 +17,15 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.meko123456.nishani.shared.MdBlock
 import io.github.meko123456.nishani.shared.MdSpan
+
+private val LinkBlue = Color(0xFF1A73E8)
 
 /**
  * Renders the shared [MarkdownParser]'s output natively with Compose. The parsing lives
@@ -48,6 +52,10 @@ fun MarkdownText(blocks: List<MdBlock>, modifier: Modifier = Modifier) {
                 )
                 is MdBlock.BulletItem -> Row(Modifier.padding(vertical = 2.dp)) {
                     Text("•  ", style = MaterialTheme.typography.bodyLarge)
+                    Text(inline(block.spans), style = MaterialTheme.typography.bodyLarge)
+                }
+                is MdBlock.OrderedItem -> Row(Modifier.padding(vertical = 2.dp)) {
+                    Text("${block.number}.  ", style = MaterialTheme.typography.bodyLarge)
                     Text(inline(block.spans), style = MaterialTheme.typography.bodyLarge)
                 }
                 is MdBlock.Quote -> Surface(
@@ -87,6 +95,11 @@ private fun inline(spans: List<MdSpan>): AnnotatedString = buildAnnotatedString 
             is MdSpan.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(span.text) }
             is MdSpan.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(span.text) }
             is MdSpan.Code -> withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append(span.text) }
+            is MdSpan.Strikethrough ->
+                withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) { append(span.text) }
+            is MdSpan.Link -> withStyle(
+                SpanStyle(color = LinkBlue, textDecoration = TextDecoration.Underline),
+            ) { append(span.text) }
         }
     }
 }

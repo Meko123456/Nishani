@@ -27,9 +27,17 @@ final class Store: ObservableObject {
     func save(id: String?, body: String) -> String {
         let noteId = id ?? "note-\(UUID().uuidString)"
         let now = Int64(Date().timeIntervalSince1970 * 1000)
-        repo.upsert(note: Note(id: noteId, body: body, updatedAt: now))
+        // Keep an existing note's pinned state; new notes start unpinned.
+        let pinned = id.flatMap { repo.get(id: $0)?.pinned } ?? false
+        repo.upsert(note: Note(id: noteId, body: body, updatedAt: now, pinned: pinned))
         refresh()
         return noteId
+    }
+
+    /// Pins or unpins a note; pinned notes sort to the top (shared logic).
+    func togglePin(_ id: String) {
+        repo.togglePin(id: id)
+        refresh()
     }
 
     func delete(_ id: String) {

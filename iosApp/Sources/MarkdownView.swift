@@ -29,6 +29,11 @@ struct MarkdownView: View {
                 Text("•")
                 inlineText(b.spans)
             }
+        case let o as MdBlockOrderedItem:
+            HStack(alignment: .top, spacing: 6) {
+                Text("\(o.number).")
+                inlineText(o.spans)
+            }
         case let q as MdBlockQuote:
             inlineText(q.spans)
                 .italic()
@@ -57,6 +62,8 @@ struct MarkdownView: View {
             case let b as MdSpanBold: return acc + Text(b.text).bold()
             case let i as MdSpanItalic: return acc + Text(i.text).italic()
             case let c as MdSpanCode: return acc + Text(c.text).font(.system(.body, design: .monospaced))
+            case let s as MdSpanStrikethrough: return acc + Text(s.text).strikethrough()
+            case let l as MdSpanLink: return acc + Text(l.text).foregroundColor(.blue).underline()
             default: return acc
             }
         }
