@@ -11,8 +11,7 @@ concurrency:
 
 jobs:
   build:
-    # Ubuntu builds the shared Kotlin + Android app. iOS targets are compiled
-    # locally on macOS (Xcode); CI covers the shared logic and Android.
+    # Ubuntu builds the shared Kotlin + Android app; the ios job below covers Kotlin/Native.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -26,3 +25,24 @@ jobs:
 
       - name: Build + test shared and Android
         run: ./gradlew :shared:testAndroidHostTest :androidApp:assembleDebug --stacktrace
+
+  ios:
+    # :shared declares iosX64, iosArm64 and iosSimulatorArm64, and nothing here ever built any of
+    # them. The old plan was to compile iOS locally, which is not a check: it holds only for as
+    # long as someone remembers, and it says nothing about a contributor's branch.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Runs the shared tests on a simulator rather than only compiling them. Compiling proves the
+      # code is valid Kotlin/Native; running proves it behaves the same there, which is the whole
+      # reason the logic lives in :shared.
+      - name: Test the shared code on iOS
+        run: ./gradlew :shared:iosSimulatorArm64Test --stacktrace
