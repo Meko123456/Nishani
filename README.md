@@ -21,7 +21,7 @@ same shared code — note titles and previews derived in Kotlin — driving a na
 Deliberately **no shared UI** — only shared logic, like a well-factored KMM app should be:
 
 ```
-shared/     Kotlin Multiplatform (commonMain + commonTest, Android + iOS targets)
+shared/ Kotlin Multiplatform (commonMain + commonTest, Android + iOS targets)
             · MarkdownParser: text → blocks/spans (the core, unit-tested)
             · Note model, NotesRepository (JSON over a KeyValueStore), search
             · KeyValueStore: expect interface; SharedPreferences (Android) / NSUserDefaults (iOS)
