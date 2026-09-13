@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import io.github.meko123456.nishani.shared.Note
 import io.github.meko123456.nishani.shared.NotesRepository
 import io.github.meko123456.nishani.shared.PrefsKeyValueStore
 import java.util.UUID
