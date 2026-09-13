@@ -24,7 +24,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Build + test shared and Android
-        run: ./gradlew :shared:testAndroidHostTest :androidApp:assembleDebug --stacktrace
+        run: ./gradlew :shared:testAndroidHostTest :androidApp:assembleDebug :androidApp:lintDebug --stacktrace
+
+      # Guards the R8 config and release-only lint. Debug never runs the shrinker, so without this
+      # a keep-rules mistake first appears when somebody builds a release by hand - and
+      # lintVitalRelease is the release-blocking subset of lint, which debug lint does not cover.
+      - name: Release build (R8 + release-blocking lint)
+        run: ./gradlew :androidApp:assembleRelease :androidApp:lintVitalRelease --stacktrace
 
   ios:
     # :shared declares iosX64, iosArm64 and iosSimulatorArm64, and nothing here ever built any of
@@ -45,4 +51,7 @@ jobs:
       # code is valid Kotlin/Native; running proves it behaves the same there, which is the whole
       # reason the logic lives in :shared.
       - name: Test the shared code on iOS
-        run: ./gradlew :shared:iosSimulatorArm64Test --stacktrace
+        run: |
+          # iosArm64 is what a real iPhone links against, and it was declared and published
+          # without ever being built. It cannot run tests on a runner, so it is compiled.
+          ./gradlew :shared:iosSimulatorArm64Test :shared:compileKotlinIosArm64 --stacktrace
