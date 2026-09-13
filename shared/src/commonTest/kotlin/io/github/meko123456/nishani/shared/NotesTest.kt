@@ -3,6 +3,7 @@ package io.github.meko123456.nishani.shared
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class NotesTest {
 
@@ -42,5 +43,43 @@ class NotesTest {
         repo.delete("b")
         assertNull(repo.get("b"))
         assertEquals(1, repo.all().size)
+    }
+
+    @Test
+    fun savingAnEditKeepsTheNotePinned() {
+        val repo = NotesRepository(InMemoryKeyValueStore())
+        repo.upsert(Note("n1", "shopping", 1, pinned = true))
+
+        repo.saveBody("n1", "shopping and cleaning", now = 2)
+
+        val saved = repo.get("n1")!!
+        assertEquals("shopping and cleaning", saved.body)
+        assertEquals(2L, saved.updatedAt)
+        // The editor autosaves on every keystroke. Rebuilding the note from just the id and body
+        // dropped this flag, so one character unpinned a note the user had deliberately pinned.
+        assertTrue(saved.pinned, "editing a pinned note must not unpin it")
+    }
+
+    @Test
+    fun savingANewNoteStartsItUnpinned() {
+        val repo = NotesRepository(InMemoryKeyValueStore())
+
+        val created = repo.saveBody("n2", "a fresh note", now = 5)
+
+        assertEquals(false, created.pinned)
+        assertEquals("a fresh note", repo.get("n2")?.body)
+    }
+
+    @Test
+    fun savingAnEditDoesNotDisturbOtherNotes() {
+        val repo = NotesRepository(InMemoryKeyValueStore())
+        repo.upsert(Note("a", "first", 1, pinned = true))
+        repo.upsert(Note("b", "second", 2))
+
+        repo.saveBody("a", "first, edited", now = 3)
+
+        assertEquals(2, repo.all().size)
+        assertEquals("second", repo.get("b")?.body)
+        assertTrue(repo.get("a")!!.pinned)
     }
 }

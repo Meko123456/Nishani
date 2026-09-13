@@ -37,6 +37,21 @@ class NotesRepository(private val store: KeyValueStore) {
         persist(notes)
     }
 
+    /**
+     * Saves [body] against [id] at [now], creating the note if it is new and keeping everything else
+     * about an existing one — notably whether it is pinned.
+     *
+     * [upsert] replaces the whole row, which makes it easy to drop a field by rebuilding a [Note]
+     * from only the parts being edited. That is exactly what happened: the Android editor rebuilt
+     * the note without `pinned`, so editing a pinned note unpinned it, while the iOS editor carried
+     * the flag across by hand. An editor wants this call, not [upsert].
+     */
+    fun saveBody(id: String, body: String, now: Long): Note {
+        val note = Note(id = id, body = body, updatedAt = now, pinned = get(id)?.pinned ?: false)
+        upsert(note)
+        return note
+    }
+
     fun delete(id: String) {
         persist(load().filterNot { it.id == id })
     }
