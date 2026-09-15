@@ -19,3 +19,10 @@ iosApp/build/
 # Signing
 *.jks
 *.keystore
+
+# Build outputs. A release APK belongs on a GitHub release, not in the history —
+# it is large, binary, and stale the moment the next commit lands. The .idsig is
+# the incremental-install signature that sits next to one and is meaningless alone.
+*.apk
+*.aab
+*.idsig
