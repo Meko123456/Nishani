@@ -82,4 +82,55 @@ class NotesTest {
         assertEquals("second", repo.get("b")?.body)
         assertTrue(repo.get("a")!!.pinned)
     }
+
+    // ───────── what happens when the saved notes will not decode ─────────
+
+    private val corruptNotes = """[{"id":"n1","body":"shopping","updated"""
+
+    @Test
+    fun anUnreadableBlobIsNotMistakenForHavingNoNotes() {
+        val kv = InMemoryKeyValueStore()
+        kv.putString("notes", corruptNotes)
+        val repo = NotesRepository(kv)
+
+        // Nothing is shown - but the value itself is kept, which is the part that matters.
+        assertEquals(emptyList(), repo.all())
+        assertEquals(corruptNotes, repo.unreadableBackup())
+    }
+
+    @Test
+    fun writingAfterAnUnreadableBlobStillLeavesTheOriginalRecoverable() {
+        val kv = InMemoryKeyValueStore()
+        kv.putString("notes", corruptNotes)
+        val repo = NotesRepository(kv)
+
+        // The autosave that used to destroy everything: one note written over the whole corpus.
+        repo.saveBody("n2", "a new note", now = 1)
+
+        assertEquals("a new note", repo.get("n2")?.body)
+        assertEquals(corruptNotes, repo.unreadableBackup(), "the original must still be recoverable")
+    }
+
+    @Test
+    fun theCopyIsTakenOnceAndNeverOverwritten() {
+        val kv = InMemoryKeyValueStore()
+        kv.putString("notes", corruptNotes)
+        val repo = NotesRepository(kv)
+        repo.all()
+
+        repo.saveBody("n3", "fine for a while", now = 2)
+        kv.putString("notes", "broken again")
+        repo.all()
+
+        assertEquals(corruptNotes, repo.unreadableBackup())
+    }
+
+    @Test
+    fun thereIsNoCopyWhenNothingWentWrong() {
+        val repo = NotesRepository(InMemoryKeyValueStore())
+        repo.saveBody("n1", "perfectly fine", now = 1)
+        repo.all()
+
+        assertNull(repo.unreadableBackup())
+    }
 }

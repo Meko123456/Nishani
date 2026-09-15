@@ -12,9 +12,45 @@ class NotesRepository(private val store: KeyValueStore) {
     private val json = Json { ignoreUnknownKeys = true }
     private val key = "notes"
 
-    private fun load(): List<Note> =
-        store.getString(key)?.let { runCatching { json.decodeFromString<List<Note>>(it) }.getOrNull() }
-            ?: emptyList()
+    private companion object {
+        const val BACKUP_KEY = "notes.unreadable"
+    }
+
+    /**
+     * What is in storage, with "nothing saved yet" kept distinct from "saved but unreadable".
+     *
+     * Collapsing those two into an empty list is how notes get destroyed. Every write here starts by
+     * reading the whole corpus and ends by replacing it, so a blob that failed to decode read as
+     * empty and the very next autosave — which fires 600ms after a keystroke — wrote a single note
+     * over everything the user had.
+     */
+    private sealed interface Stored {
+        data object Missing : Stored
+        data class Notes(val notes: List<Note>) : Stored
+        data object Unreadable : Stored
+    }
+
+    private fun read(): Stored {
+        val raw = store.getString(key) ?: return Stored.Missing
+        runCatching { json.decodeFromString<List<Note>>(raw) }
+            .getOrNull()
+            ?.let { return Stored.Notes(it) }
+
+        // Keep it before anything else touches storage. This is the only copy of those notes, and
+        // taking it once means a later save that also goes bad cannot overwrite the real one.
+        if (store.getString(BACKUP_KEY) == null) store.putString(BACKUP_KEY, raw)
+        return Stored.Unreadable
+    }
+
+    /** The unreadable blob kept aside by [read], if there is one. */
+    fun unreadableBackup(): String? = store.getString(BACKUP_KEY)
+
+    private fun load(): List<Note> = when (val stored = read()) {
+        is Stored.Notes -> stored.notes
+        // Empty either way, but for different reasons: nothing to show, versus nothing we dare show.
+        // The difference is that the raw value has been copied aside in the second case.
+        Stored.Missing, Stored.Unreadable -> emptyList()
+    }
 
     private fun persist(notes: List<Note>) {
         store.putString(key, json.encodeToString(notes))
