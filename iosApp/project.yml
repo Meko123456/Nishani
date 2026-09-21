@@ -33,3 +33,30 @@ targets:
           cd "$SRCROOT/.."
           export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
           ./gradlew :shared:embedAndSignAppleFrameworkForXcode
+
+  NishaniUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: Nishani
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.meko123456.nishani.uitests
+        # Without this the bundle has no Info.plist and signing fails with a message that
+        # blames the signature rather than the missing plist.
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+schemes:
+  Nishani:
+    build:
+      targets:
+        Nishani: all
+        NishaniUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - NishaniUITests
