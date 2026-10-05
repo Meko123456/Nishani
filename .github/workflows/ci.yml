@@ -9,10 +9,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Every job has a timeout of about three times its slowest green run (measured October 2026).
+# GitHub's default is six hours, and a job that hangs (a simulator or emulator that never comes
+# up, say) would otherwise hold the run, and keep its log unreadable, for all of them.
 jobs:
   build:
     # Ubuntu builds the shared Kotlin + Android app; the ios job below covers Kotlin/Native.
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -37,6 +41,7 @@ jobs:
     # them. The old plan was to compile iOS locally, which is not a check: it holds only for as
     # long as someone remembers, and it says nothing about a contributor's branch.
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -67,6 +72,7 @@ jobs:
     # the generator is part of the check: a project.yml that no longer produces a buildable project
     # is the same breakage as a source file that will not compile.
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
 
@@ -117,6 +123,7 @@ jobs:
     # was green. This installs the R8 build on an emulator, opens it, and fails if it crashes or is
     # not running fifteen seconds later. Proven both ways in Nabiji #13.
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
