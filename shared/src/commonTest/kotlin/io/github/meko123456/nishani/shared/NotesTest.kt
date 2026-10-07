@@ -32,6 +32,22 @@ class NotesTest {
     }
 
     @Test
+    fun titleAndPreviewCutAcrossAnEmojiLeaveItOutWhole() {
+        val laptop = "\uD83D\uDCBB" // 💻, two chars
+        val note = Note("1", "x".repeat(79) + laptop + "\n" + "y".repeat(119) + laptop, 1)
+        // take(80) and take(120) kept the emoji's first half: a broken character in the list.
+        assertEquals("x".repeat(79), note.title)
+        assertEquals("y".repeat(119), note.preview)
+    }
+
+    @Test
+    fun capCutsLongTextAndLeavesShortTextAlone() {
+        assertEquals("x".repeat(80), "x".repeat(200).capped(80))
+        assertEquals("Groceries \uD83D\uDED2", "Groceries \uD83D\uDED2".capped(80))
+        assertEquals("", "".capped(80))
+    }
+
+    @Test
     fun repositoryUpsertGetDeleteAndOrder() {
         val repo = NotesRepository(InMemoryKeyValueStore())
         repo.upsert(Note("a", "first", 1))

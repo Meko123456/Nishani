@@ -15,7 +15,7 @@ data class Note(
         get() = body.lineSequence()
             .map { it.trim().trimStart('#', '>', '-', '*', ' ') }
             .firstOrNull { it.isNotBlank() }
-            ?.take(80)
+            ?.capped(80)
             ?: "Untitled"
 
     /** A short second-line preview for the list. */
@@ -25,7 +25,7 @@ data class Note(
             .filter { it.isNotBlank() }
             .drop(1)
             .firstOrNull()
-            ?.take(120)
+            ?.capped(120)
             ?: ""
 }
 
