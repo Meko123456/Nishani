@@ -104,15 +104,38 @@ final class NoteFlowTests: XCTestCase {
         // note has now overtaken the newer one on the strength of the first half alone.
         expectTitles(["📌 Older note", "Newer note"])
 
-        // The regression that already happened on the other platform. Saving a note rebuilds the
+        // The regression that already happened on the other platform. Saving an edit rebuilds the
         // stored row, and an editor that rebuilds it from only the fields it is editing drops the
         // pinned flag. The marker is what is asserted, not the position: an unpinned note would
-        // also sort first here, because saving makes it the most recently updated.
+        // also sort first here, because the edit makes it the most recently updated. It has to be
+        // a real edit: text that has not changed is not written at all.
         tap(app.buttons["note-Older note"], "the pinned row")
-        XCTAssertTrue(app.buttons["doneEditing"].waitForExistence(timeout: 20), "the editor never opened")
+        let body = app.textViews["noteBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 20), "the editor never opened")
+        // Below the last line, so the cursor lands at the end and the title line stays as it is.
+        body.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.9)).tap()
+        body.typeText("\nEdited.")
         tap(app.buttons["doneEditing"], "Done")
 
         expectTitles(["📌 Older note", "Newer note"])
+    }
+
+    func testOpeningANoteWithoutEditingLeavesItWhereItWas() {
+        launchFresh()
+
+        writeNote("# Older note\nWritten first.")
+        writeNote("# Newer note\nWritten second.")
+        expectTitles(["Newer note", "Older note"])
+
+        // Opened, read for longer than the 600 ms autosave, and closed without a keystroke. The
+        // editor saves what it shows either way, and that save stamped the note as just edited,
+        // so reading the older note brought it back to the top of the list.
+        openNote(titled: "Older note")
+        XCTAssertTrue(app.buttons["doneEditing"].waitForExistence(timeout: 20), "the editor never opened")
+        Thread.sleep(forTimeInterval: 1.5)
+        tap(app.buttons["doneEditing"], "Done")
+
+        expectTitles(["Newer note", "Older note"])
     }
 
     // MARK: - Driving the app

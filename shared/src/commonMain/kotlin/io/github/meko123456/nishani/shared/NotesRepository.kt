@@ -81,9 +81,15 @@ class NotesRepository(private val store: KeyValueStore) {
      * from only the parts being edited. That is exactly what happened: the Android editor rebuilt
      * the note without `pinned`, so editing a pinned note unpinned it, while the iOS editor carried
      * the flag across by hand. An editor wants this call, not [upsert].
+     *
+     * Saving the text a note already has changes nothing, its time included. Both editors autosave
+     * what they show 600 ms after a note opens, so a note that was only opened and read jumped to
+     * the top of the list as just edited.
      */
     fun saveBody(id: String, body: String, now: Long): Note {
-        val note = Note(id = id, body = body, updatedAt = now, pinned = get(id)?.pinned ?: false)
+        val existing = get(id)
+        if (existing != null && existing.body == body) return existing
+        val note = Note(id = id, body = body, updatedAt = now, pinned = existing?.pinned ?: false)
         upsert(note)
         return note
     }

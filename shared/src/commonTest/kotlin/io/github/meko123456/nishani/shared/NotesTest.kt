@@ -99,6 +99,19 @@ class NotesTest {
         assertTrue(repo.get("a")!!.pinned)
     }
 
+    @Test
+    fun savingUnchangedTextKeepsTheNotesTimeAndPlace() {
+        val repo = NotesRepository(InMemoryKeyValueStore())
+        repo.upsert(Note("a", "older", 1))
+        repo.upsert(Note("b", "newer", 2))
+
+        // What both editors do 600 ms after a note is opened, whether or not it was edited.
+        repo.saveBody("a", "older", now = 3)
+
+        assertEquals(1L, repo.get("a")!!.updatedAt)
+        assertEquals(listOf("b", "a"), repo.all().map { it.id }, "opening a note must not move it to the top")
+    }
+
     // ───────── what happens when the saved notes will not decode ─────────
 
     private val corruptNotes = """[{"id":"n1","body":"shopping","updated"""
