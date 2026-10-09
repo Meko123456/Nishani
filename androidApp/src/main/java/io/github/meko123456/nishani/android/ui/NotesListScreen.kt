@@ -89,7 +89,12 @@ fun NotesListScreen(
                     items(notes, key = { it.id }) { note ->
                         Column(
                             Modifier.fillMaxWidth()
-                                .combinedClickable(onClick = { onOpen(note.id) }, onLongClick = { onTogglePin(note.id) })
+                                .combinedClickable(
+                                    onClick = { onOpen(note.id) },
+                                    onLongClick = { onTogglePin(note.id) },
+                                    // Named, so TalkBack says what holding a note does.
+                                    onLongClickLabel = if (note.pinned) "Unpin" else "Pin",
+                                )
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
