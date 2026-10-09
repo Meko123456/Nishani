@@ -25,7 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -39,14 +39,14 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(
-    initialBody: String,
+    text: String,
+    onTextChange: (String) -> Unit,
     canDelete: Boolean,
     onSave: (String) -> Unit,
     onDelete: () -> Unit,
     onBack: () -> Unit,
 ) {
-    var text by remember { mutableStateOf(initialBody) }
-    var preview by remember { mutableStateOf(false) }
+    var preview by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Export the note as a .md file via the Storage Access Framework.
@@ -112,7 +112,7 @@ fun NoteEditorScreen(
         } else {
             TextField(
                 value = text,
-                onValueChange = { text = it },
+                onValueChange = onTextChange,
                 placeholder = { Text("Write in markdown…  # heading, - bullet, **bold**") },
                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
                 colors = TextFieldDefaults.colors(

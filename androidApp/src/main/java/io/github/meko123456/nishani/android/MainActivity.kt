@@ -8,10 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.meko123456.nishani.android.ui.NoteEditorScreen
 import io.github.meko123456.nishani.android.ui.NotesListScreen
@@ -25,9 +21,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             NishaniTheme {
                 val vm: NotesViewModel = viewModel()
-                var editingId by remember { mutableStateOf<String?>(null) }
-                var editorInitial by remember { mutableStateOf("") }
-                var isEditing by remember { mutableStateOf(false) }
+                val draft = vm.draft
                 val context = LocalContext.current
 
                 // Import a .md file into a new note via the Storage Access Framework.
@@ -36,40 +30,34 @@ class MainActivity : ComponentActivity() {
                 ) { uri ->
                     uri?.let {
                         val body = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
-                        if (!body.isNullOrBlank()) {
-                            editingId = null
-                            editorInitial = body
-                            isEditing = true
-                        }
+                        if (!body.isNullOrBlank()) vm.openEditor(null, body)
                     }
                 }
 
-                BackHandler(enabled = isEditing) { isEditing = false }
+                // Saves first, as the toolbar's back arrow does: leaving cancels the 600 ms autosave,
+                // so the last keystrokes were lost.
+                BackHandler(enabled = draft != null) {
+                    draft?.let(vm::saveDraft)
+                    vm.closeEditor()
+                }
 
-                if (isEditing) {
+                if (draft != null) {
                     NoteEditorScreen(
-                        initialBody = editorInitial,
-                        canDelete = editingId != null,
-                        onSave = { body -> editingId = vm.save(editingId, body) },
-                        onDelete = { editingId?.let { vm.delete(it) }; isEditing = false },
-                        onBack = { isEditing = false },
+                        text = draft,
+                        onTextChange = vm::editDraft,
+                        canDelete = vm.editingId != null,
+                        onSave = vm::saveDraft,
+                        onDelete = { vm.editingId?.let { vm.delete(it) }; vm.closeEditor() },
+                        onBack = vm::closeEditor,
                     )
                 } else {
                     NotesListScreen(
                         notes = vm.notes,
                         query = vm.query,
                         onQuery = vm::onQuery,
-                        onOpen = { id ->
-                            editingId = id
-                            editorInitial = vm.note(id)?.body ?: ""
-                            isEditing = true
-                        },
+                        onOpen = { id -> vm.openEditor(id, vm.note(id)?.body ?: "") },
                         onTogglePin = vm::togglePin,
-                            onNew = {
-                            editingId = null
-                            editorInitial = ""
-                            isEditing = true
-                        },
+                        onNew = { vm.openEditor(null, "") },
                         onImport = { importLauncher.launch(arrayOf("text/*")) },
                     )
                 }

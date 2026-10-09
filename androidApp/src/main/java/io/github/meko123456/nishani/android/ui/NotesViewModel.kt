@@ -45,6 +45,36 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         return noteId
     }
 
+    /**
+     * The note open in the editor: its id (null until a new note's first save) and its text as
+     * typed, or a null draft when the editor is closed. Held here, not in the screens, so a rotation
+     * keeps the editor open on the same note with every keystroke. In memory only: a whole note, an
+     * imported file say, can be too big for saved instance state.
+     */
+    var editingId by mutableStateOf<String?>(null)
+        private set
+    var draft by mutableStateOf<String?>(null)
+        private set
+
+    fun openEditor(id: String?, body: String) {
+        editingId = id
+        draft = body
+    }
+
+    fun editDraft(text: String) {
+        draft = text
+    }
+
+    /** Autosave and leaving. A new note gets its id on its first save and keeps it. */
+    fun saveDraft(body: String) {
+        if (body.isNotBlank()) editingId = save(editingId, body)
+    }
+
+    fun closeEditor() {
+        editingId = null
+        draft = null
+    }
+
     fun delete(id: String) {
         repo.delete(id)
         refresh()
