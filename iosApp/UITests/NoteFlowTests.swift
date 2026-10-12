@@ -138,6 +138,24 @@ final class NoteFlowTests: XCTestCase {
         expectTitles(["Newer note", "Older note"])
     }
 
+    func testToolbarButtonsSayWhatTheyDo() {
+        launchFresh()
+
+        // Glyph-only buttons: VoiceOver reads the label, so it has to say what the button does.
+        let newNote = app.buttons["newNote"]
+        XCTAssertTrue(newNote.waitForExistence(timeout: 30))
+        XCTAssertEqual(newNote.label, "New note")
+
+        writeNote("# Labels\nChecked by VoiceOver's names.")
+        openNote(titled: "Labels")
+        let toggle = app.buttons["togglePreview"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 20), "the editor never opened")
+        XCTAssertEqual(toggle.label, "Preview")
+        tap(toggle, "the preview toggle")
+        let switched = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Edit'"), object: toggle)
+        XCTAssertEqual(XCTWaiter().wait(for: [switched], timeout: 10), .completed, "in preview the toggle should offer Edit")
+    }
+
     // MARK: - Driving the app
 
     private func launchFresh() {

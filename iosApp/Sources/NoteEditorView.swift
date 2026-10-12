@@ -43,6 +43,8 @@ struct NoteEditorView: View {
                         Image(systemName: showPreview ? "pencil" : "eye")
                     }
                     .accessibilityIdentifier("togglePreview")
+                    // Named like Android's: what the button switches to.
+                    .accessibilityLabel(showPreview ? "Edit" : "Preview")
                 }
                 if !text.isEmpty {
                     ToolbarItem(placement: .primaryAction) {

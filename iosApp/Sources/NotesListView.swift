@@ -68,6 +68,7 @@ struct NotesListView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Button { editing = .new } label: { Image(systemName: "plus") }
                         .accessibilityIdentifier("newNote")
+                        .accessibilityLabel("New note")
                 }
             }
             .sheet(item: $editing) { target in
