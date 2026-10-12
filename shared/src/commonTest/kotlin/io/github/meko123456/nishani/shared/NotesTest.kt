@@ -41,6 +41,29 @@ class NotesTest {
     }
 
     @Test
+    fun titleAndPreviewShowTheWordsNotTheMarkup() {
+        val note = Note("1", "# **Weekend** plan\nPack for the **trip**, [book](https://example.com) a `table`", 1)
+        assertEquals("Weekend plan", note.title)
+        assertEquals("Pack for the trip, book a table", note.preview)
+    }
+
+    @Test
+    fun previewSkipsRulesAndFencesAndDropsBlockMarkers() {
+        assertEquals("Train at 9", Note("1", "Trip\n---\n1. Train at **9**", 1).preview)
+        assertEquals("a quote", Note("1", "Title\n> *a quote*", 1).preview)
+        // Inside a fence it is code, kept as written.
+        assertEquals("val x = a_b * 2", Note("1", "# Snippet\n```kotlin\nval x = a_b * 2\n```", 1).preview)
+    }
+
+    @Test
+    fun plainLineKeepsWhatOnlyLooksLikeMarkup() {
+        assertEquals("2 * 3 * 4", "2 * 3 * 4".asPlainLine())
+        assertEquals("snake_case_name", "snake_case_name".asPlainLine())
+        assertEquals("#hashtag", "#hashtag".asPlainLine())
+        assertEquals("", "***".asPlainLine())
+    }
+
+    @Test
     fun capCutsLongTextAndLeavesShortTextAlone() {
         assertEquals("x".repeat(80), "x".repeat(200).capped(80))
         assertEquals("Groceries \uD83D\uDED2", "Groceries \uD83D\uDED2".capped(80))
