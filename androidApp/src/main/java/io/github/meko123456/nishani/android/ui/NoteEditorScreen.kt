@@ -3,7 +3,9 @@ package io.github.meko123456.nishani.android.ui
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -119,7 +121,10 @@ fun NoteEditorScreen(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                modifier = Modifier.fillMaxSize().padding(padding),
+                // Ends at the top of the keyboard. Without this the window was panned instead: the line
+                // being edited stayed hidden until the first keystroke, which then pushed the toolbar off
+                // the top of the screen.
+                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),
             )
         }
     }
