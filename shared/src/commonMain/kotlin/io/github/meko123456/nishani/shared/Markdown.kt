@@ -154,7 +154,11 @@ object MarkdownParser {
         var i = 0
         while (i < text.length) {
             val rest = text.substring(i)
-            val span = codeSpan(rest) ?: linkSpan(rest) ?: strikeSpan(rest) ?: boldSpan(rest) ?: italicSpan(rest)
+            // Whether a run of underscores starting here begins inside a word.
+            var runStart = i
+            while (runStart > 0 && text[runStart - 1] == '_') runStart--
+            val inWord = runStart > 0 && text[runStart - 1].isLetterOrDigit()
+            val span = codeSpan(rest) ?: linkSpan(rest) ?: strikeSpan(rest) ?: boldSpan(rest, inWord) ?: italicSpan(rest, inWord)
             if (span != null) {
                 flush()
                 spans += span.first
@@ -220,11 +224,23 @@ object MarkdownParser {
         MdSpan.Strikethrough(it.first) to it.second
     }
 
-    private fun boldSpan(rest: String): Pair<MdSpan, Int>? =
-        (delimited(rest, "**") ?: delimited(rest, "__"))?.let { MdSpan.Bold(it.first) to it.second }
+    private fun boldSpan(rest: String, inWord: Boolean): Pair<MdSpan, Int>? =
+        (delimited(rest, "**") ?: underscored(rest, "__", inWord))?.let { MdSpan.Bold(it.first) to it.second }
 
-    private fun italicSpan(rest: String): Pair<MdSpan, Int>? =
-        (delimited(rest, "*") ?: delimited(rest, "_"))?.let { MdSpan.Italic(it.first) to it.second }
+    private fun italicSpan(rest: String, inWord: Boolean): Pair<MdSpan, Int>? =
+        (delimited(rest, "*") ?: underscored(rest, "_", inWord))?.let { MdSpan.Italic(it.first) to it.second }
+
+    /**
+     * [delimited] for underscores, which CommonMark lets open and close emphasis only at the edge of
+     * a word. Stars may sit inside one; underscores can't, or snake_case_name would read as "snake",
+     * an italic "case", and "name", which is what it did.
+     */
+    private fun underscored(rest: String, marker: String, inWord: Boolean): Pair<String, Int>? {
+        if (inWord) return null
+        val match = delimited(rest, marker) ?: return null
+        val after = rest.drop(match.second).trimStart('_').firstOrNull()
+        return match.takeUnless { after != null && after.isLetterOrDigit() }
+    }
 
     /**
      * Content between a matching pair of [marker]s, plus the total chars consumed.

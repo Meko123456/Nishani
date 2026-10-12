@@ -60,6 +60,24 @@ class InlineParsingTest {
     }
 
     @Test
+    fun underscoresInsideAWordStayLiteral() {
+        // An identifier keeps its underscores, as in CommonMark. snake_case_name came out as
+        // "snake", an italic "case" and "name", with both underscores gone.
+        assertEquals(listOf(MdSpan.Text("snake_case_name")), MarkdownParser.parseInline("snake_case_name"))
+        assertEquals(listOf(MdSpan.Text("raise MAX_RETRY_COUNT")), MarkdownParser.parseInline("raise MAX_RETRY_COUNT"))
+        assertEquals(listOf(MdSpan.Text("a__b__c")), MarkdownParser.parseInline("a__b__c"))
+        // At a word's edges they still mark emphasis, and stars still work inside a word.
+        assertEquals(
+            listOf(MdSpan.Text("a "), MdSpan.Italic("soft"), MdSpan.Text(" word")),
+            MarkdownParser.parseInline("a _soft_ word"),
+        )
+        assertEquals(
+            listOf(MdSpan.Text("un"), MdSpan.Italic("frigging"), MdSpan.Text("believable")),
+            MarkdownParser.parseInline("un*frigging*believable"),
+        )
+    }
+
+    @Test
     fun emphasisStillWorksWhenTightlyWrapped() =
         assertEquals(listOf(MdSpan.Italic("yes")), MarkdownParser.parseInline("*yes*"))
 
