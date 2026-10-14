@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
                         onTextChange = vm::editDraft,
                         canDelete = vm.editingId != null,
                         onSave = vm::saveDraft,
-                        onDelete = { vm.editingId?.let { vm.delete(it) }; vm.closeEditor() },
+                        onDelete = vm::deleteOpenNote,
                         onBack = vm::closeEditor,
                     )
                 } else {
@@ -59,6 +59,9 @@ class MainActivity : ComponentActivity() {
                         onTogglePin = vm::togglePin,
                         onNew = { vm.openEditor(null, "") },
                         onImport = { importLauncher.launch(arrayOf("text/*")) },
+                        deleted = vm.deleted,
+                        onUndoDelete = vm::undoDelete,
+                        onDeleteSettled = vm::forgetDeleted,
                     )
                 }
             }

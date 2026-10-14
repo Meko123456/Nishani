@@ -19,9 +19,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -40,8 +46,20 @@ fun NotesListScreen(
     onNew: () -> Unit,
     onTogglePin: (String) -> Unit = {},
     onImport: () -> Unit = {},
+    deleted: Note? = null,
+    onUndoDelete: () -> Unit = {},
+    onDeleteSettled: () -> Unit = {},
 ) {
+    val snackbar = remember { SnackbarHostState() }
+    // A note deleted in the editor can come back from here. Long, as in the fleet's other Undo
+    // snackbars: Short's 4 s are gone before the action can be reached.
+    LaunchedEffect(deleted) {
+        if (deleted == null) return@LaunchedEffect
+        val result = snackbar.showSnackbar("Note deleted", actionLabel = "Undo", duration = SnackbarDuration.Long)
+        if (result == SnackbarResult.ActionPerformed) onUndoDelete() else onDeleteSettled()
+    }
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("Nishani") },

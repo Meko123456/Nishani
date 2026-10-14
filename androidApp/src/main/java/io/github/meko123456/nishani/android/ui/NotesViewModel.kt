@@ -59,6 +59,7 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
     fun openEditor(id: String?, body: String) {
         editingId = id
         draft = body
+        deleted = null // moving on to another note lets the last delete stand
     }
 
     fun editDraft(text: String) {
@@ -75,9 +76,37 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         draft = null
     }
 
-    fun delete(id: String) {
+    /**
+     * The note deleted last, until its Undo is used or let go. In memory only, like the draft: a
+     * whole note can be too big for saved state.
+     */
+    var deleted by mutableStateOf<Note?>(null)
+        private set
+
+    /**
+     * Deletes the note open in the editor and closes it. The trash icon did this at one tap with no
+     * way back; now the list offers Undo. The draft is saved first, so Undo brings back what was on
+     * screen rather than the autosave before it.
+     */
+    fun deleteOpenNote() {
+        val id = editingId ?: return
+        draft?.let(::saveDraft)
+        deleted = repo.get(id)
         repo.delete(id)
+        closeEditor()
         refresh()
+    }
+
+    /** Puts the note back as it was, time and pin included, so it returns to its place. */
+    fun undoDelete() {
+        deleted?.let(repo::upsert)
+        deleted = null
+        refresh()
+    }
+
+    /** The Undo went unused: the delete stands. */
+    fun forgetDeleted() {
+        deleted = null
     }
 
     fun togglePin(id: String) {
