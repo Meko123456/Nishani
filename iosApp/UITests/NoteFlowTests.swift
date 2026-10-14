@@ -206,6 +206,10 @@ final class NoteFlowTests: XCTestCase {
         tap(field, "the search field")
         let clear = field.buttons.firstMatch
         if clear.exists { clear.tap() }
+        // Typed only once the field has the keyboard. On a busy CI runner (14 October 2026) the
+        // field was still moving into place after the tap, and typeText found nothing focused.
+        let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: field)
+        if XCTWaiter().wait(for: [focused], timeout: 10) != .completed { field.tap() }
         field.typeText(text)
     }
 
