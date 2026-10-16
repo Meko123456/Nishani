@@ -43,7 +43,7 @@ platform renders it natively (Compose `AnnotatedString`, SwiftUI `Text`).
 
 ## Tech
 
-- Gradle 9.8.0 · AGP 9.4.1 · Kotlin 2.4.21 · Compose BOM 2026.09.00
+- Gradle 9.8.1 · AGP 9.4.1 · Kotlin 2.4.21 · Compose BOM 2026.09.00
 - compileSdk 37 · targetSdk 37 · minSdk 26 · iOS 16+
 - kotlinx-serialization for note persistence
 
