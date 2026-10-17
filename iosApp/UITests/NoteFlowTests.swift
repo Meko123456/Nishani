@@ -113,8 +113,9 @@ final class NoteFlowTests: XCTestCase {
         let body = app.textViews["noteBody"]
         XCTAssertTrue(body.waitForExistence(timeout: 20), "the editor never opened")
         // Below the last line, so the cursor lands at the end and the title line stays as it is.
-        body.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.9)).tap()
-        body.typeText("\nEdited.")
+        let end = body.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.9))
+        end.tap()
+        typeOnceFocused(body, "\nEdited.") { end.tap() }
         tap(app.buttons["doneEditing"], "Done")
 
         expectTitles(["📌 Older note", "Newer note"])
@@ -214,7 +215,7 @@ final class NoteFlowTests: XCTestCase {
         let body = app.textViews["noteBody"]
         XCTAssertTrue(body.waitForExistence(timeout: 20), "the editor never opened")
         tap(body, "the editor")
-        body.typeText(markdown)
+        typeOnceFocused(body, markdown) { body.tap() }
         tap(app.buttons["doneEditing"], "Done")
     }
 
@@ -227,11 +228,17 @@ final class NoteFlowTests: XCTestCase {
         tap(field, "the search field")
         let clear = field.buttons.firstMatch
         if clear.exists { clear.tap() }
-        // Typed only once the field has the keyboard. On a busy CI runner (14 October 2026) the
-        // field was still moving into place after the tap, and typeText found nothing focused.
-        let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: field)
-        if XCTWaiter().wait(for: [focused], timeout: 10) != .completed { field.tap() }
-        field.typeText(text)
+        typeOnceFocused(field, text) { field.tap() }
+    }
+
+    /// Types only once [element] has the keyboard, and taps it again with [refocus] if it never
+    /// gets it. On a busy CI runner (14 October 2026) the search field was still moving into place
+    /// after the tap and typeText found nothing focused; DayBlocks' block editor failed on CI the
+    /// same way on 17 October. The note body is typed into the same way, so it waits as well.
+    private func typeOnceFocused(_ element: XCUIElement, _ text: String, refocus: () -> Void) {
+        let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: element)
+        if XCTWaiter().wait(for: [focused], timeout: 10) != .completed { refocus() }
+        element.typeText(text)
     }
 
     // MARK: - Assertions
