@@ -4,6 +4,8 @@ import Shared
 struct NotesListView: View {
     @EnvironmentObject var store: Store
     @State private var editing: EditorTarget?
+    /// The note a swipe asked to delete, held while the question is up.
+    @State private var pendingDelete: PendingNoteDelete?
 
     var body: some View {
         NavigationStack {
@@ -55,12 +57,30 @@ struct NotesListView: View {
                                 .tint(.orange)
                                 .accessibilityIdentifier("pin-\(note.title)")
                             }
-                        }
-                        .onDelete { indexSet in
-                            indexSet.map { store.notes[$0].id }.forEach { store.delete($0) }
+                            // Asks first. The list's swipe-to-delete removed the note for good —
+                            // there is no trash to bring it back from — and a full swipe needed no
+                            // tap at all. Tinted rather than given the destructive role, which
+                            // takes the row away before the answer is in.
+                            .swipeActions(edge: .trailing) {
+                                Button { pendingDelete = PendingNoteDelete(id: note.id, title: note.title) } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .tint(.red)
+                                .accessibilityIdentifier("delete-\(note.title)")
+                            }
                         }
                     }
                 }
+            }
+            .alert(
+                "Delete \u{201C}\(pendingDelete?.title ?? "this note")\u{201D}?",
+                isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+                presenting: pendingDelete
+            ) { pending in
+                Button("Delete", role: .destructive) { store.delete(pending.id) }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("It can't be brought back.")
             }
             .navigationTitle("Nishani")
             .searchable(text: $store.query, prompt: "Search notes")
@@ -76,6 +96,12 @@ struct NotesListView: View {
             }
         }
     }
+}
+
+/// A note waiting on the delete question: enough of it to ask about it by name.
+private struct PendingNoteDelete {
+    let id: String
+    let title: String
 }
 
 enum EditorTarget: Identifiable {

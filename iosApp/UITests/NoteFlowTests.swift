@@ -120,6 +120,27 @@ final class NoteFlowTests: XCTestCase {
         expectTitles(["📌 Older note", "Newer note"])
     }
 
+    func testSwipingToDeleteANoteAsksFirst() {
+        launchFresh()
+        writeNote("# Keep me\nThe only copy.")
+        expectTitles(["Keep me"])
+
+        // The swipe deleted the note outright, and nothing could bring it back.
+        app.buttons["note-Keep me"].swipeLeft()
+        tap(app.buttons["delete-Keep me"], "the swipe's Delete")
+        let alert = app.alerts["Delete “Keep me”?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 30), "the swipe deleted the note without asking")
+        XCTAssertTrue(alert.staticTexts["It can't be brought back."].exists, "the question did not say it is for good")
+        tap(alert.buttons["Cancel"], "Cancel")
+        expectTitles(["Keep me"])
+
+        app.buttons["note-Keep me"].swipeLeft()
+        tap(app.buttons["delete-Keep me"], "the swipe's Delete")
+        XCTAssertTrue(alert.waitForExistence(timeout: 30), "the second swipe did not ask either")
+        tap(alert.buttons["Delete"], "Delete")
+        expectNoteCount(0, "the confirmed delete left the note in the list")
+    }
+
     func testOpeningANoteWithoutEditingLeavesItWhereItWas() {
         launchFresh()
 
