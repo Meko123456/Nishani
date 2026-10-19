@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import io.github.meko123456.nishani.shared.Note
 import io.github.meko123456.nishani.shared.NotesRepository
 import io.github.meko123456.nishani.shared.PrefsKeyValueStore
+import io.github.meko123456.nishani.shared.noteText
 import java.util.UUID
 
 /** Bridges the shared [NotesRepository] to Compose state. Persistence + search are shared logic. */
@@ -58,7 +59,8 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openEditor(id: String?, body: String) {
         editingId = id
-        draft = body
+        // An imported file, or a note imported before this, can carry a BOM and "\r\n" endings.
+        draft = noteText(body)
         deleted = null // moving on to another note lets the last delete stand
     }
 

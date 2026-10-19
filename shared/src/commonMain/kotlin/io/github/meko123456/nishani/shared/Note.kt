@@ -29,7 +29,7 @@ data class Note(
      */
     private fun textLines(): Sequence<String> = sequence {
         var inFence = false
-        for (line in body.lineSequence()) {
+        for (line in noteText(body).lineSequence()) {
             val trimmed = line.trim()
             if (trimmed.startsWith("```")) {
                 inFence = !inFence
@@ -40,6 +40,15 @@ data class Note(
         }
     }
 }
+
+/**
+ * Text as a note keeps it: no byte-order mark in front, and "\n" between lines.
+ *
+ * A file saved by Windows Notepad starts with a BOM and ends its lines with "\r\n". Imported as it
+ * was, the BOM stood in front of the first heading's "#": "# Shopping" was a paragraph in the
+ * preview, and the list's title kept its hash.
+ */
+fun noteText(raw: String): String = raw.removePrefix("\uFEFF").replace("\r\n", "\n").replace('\r', '\n')
 
 /**
  * One line of markdown as the words it shows, read by the parser the preview uses: a heading, list
