@@ -51,6 +51,16 @@ data class Note(
 fun noteText(raw: String): String = raw.removePrefix("\uFEFF").replace("\r\n", "\n").replace('\r', '\n')
 
 /**
+ * The note made from text another app shared: its subject, a shared page's title say, as the
+ * heading, then the text. A subject the text already carries is left out rather than said twice.
+ */
+fun sharedNoteText(subject: String?, text: String): String {
+    val body = noteText(text).trim()
+    val title = subject?.let(::noteText)?.trim()?.takeIf { it.isNotEmpty() && it !in body }
+    return if (title == null) body else "# $title\n\n$body"
+}
+
+/**
  * One line of markdown as the words it shows, read by the parser the preview uses: a heading, list
  * or quote marker goes, a rule comes back empty, and inline marks go while their text stays.
  */
