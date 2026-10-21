@@ -27,9 +27,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
@@ -50,6 +53,10 @@ fun NoteEditorScreen(
 ) {
     var preview by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val field = remember { FocusRequester() }
+    // Blank notes aren't saved, so a note that opens empty is a new one, from + or the New note
+    // shortcut, and the next thing is writing it: the field has the keyboard at once.
+    val openedEmpty = remember { text.isEmpty() }
 
     // Export the note as a .md file via the Storage Access Framework.
     val exportLauncher = rememberLauncherForActivityResult(
@@ -124,8 +131,10 @@ fun NoteEditorScreen(
                 // Ends at the top of the keyboard. Without this the window was panned instead: the line
                 // being edited stayed hidden until the first keystroke, which then pushed the toolbar off
                 // the top of the screen.
-                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),
+                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()
+                    .focusRequester(field),
             )
+            LaunchedEffect(Unit) { if (openedEmpty) field.requestFocus() }
         }
     }
 }
