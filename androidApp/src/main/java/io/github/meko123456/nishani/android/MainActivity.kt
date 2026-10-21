@@ -36,7 +36,8 @@ class MainActivity : ComponentActivity() {
                 val draft = vm.draft
                 val context = LocalContext.current
 
-                // Shared from another app: a new note, the open one saved first.
+                // Shared from another app, or the New note shortcut: a new note, the open one saved
+                // first.
                 LaunchedEffect(handover?.second) {
                     handover?.let { (text, _) ->
                         vm.draft?.let(vm::saveDraft)
@@ -95,9 +96,19 @@ class MainActivity : ComponentActivity() {
 
     /** A plain-text SEND becomes a new note; anything else, the launcher's MAIN included, is ignored. */
     private fun take(intent: Intent?) {
+        // The launcher's New note shortcut (res/xml/shortcuts.xml): a new note with nothing in it
+        // yet, which, like any blank draft, isn't saved unless something is written.
+        if (intent?.action == ACTION_NEW_NOTE) {
+            handover = "" to ((handover?.second ?: 0) + 1)
+            return
+        }
         if (intent?.action != Intent.ACTION_SEND) return
         val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.takeIf { it.isNotBlank() } ?: return
         val note = sharedNoteText(intent.getStringExtra(Intent.EXTRA_SUBJECT), text)
         handover = note to ((handover?.second ?: 0) + 1)
+    }
+
+    companion object {
+        const val ACTION_NEW_NOTE = "io.github.meko123456.nishani.action.NEW_NOTE"
     }
 }

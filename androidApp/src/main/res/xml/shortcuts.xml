@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press Nishani's icon: a new note, without going through the list first. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_note"
+        android:icon="@drawable/ic_shortcut_new_note"
+        android:shortcutShortLabel="@string/shortcut_new_note_short"
+        android:shortcutLongLabel="@string/shortcut_new_note_long">
+        <intent
+            android:action="io.github.meko123456.nishani.action.NEW_NOTE"
+            android:targetClass="io.github.meko123456.nishani.android.MainActivity"
+            android:targetPackage="io.github.meko123456.nishani" />
+    </shortcut>
+</shortcuts>
