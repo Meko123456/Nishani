@@ -21,8 +21,14 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.Nishani">
 
+        <!--
+          singleTop, so text shared while Nishani is already open reaches onNewIntent. Without it,
+          a share started as a new task (from a notification, a widget, a service) found Nishani's
+          task, brought it forward and dropped the text, and no note was made.
+        -->
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Nishani">
