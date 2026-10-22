@@ -9,6 +9,7 @@ struct NoteEditorView: View {
     @State private var text: String = ""
     @State private var noteId: String?
     @State private var showPreview = false
+    @FocusState private var bodyFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -28,6 +29,7 @@ struct NoteEditorView: View {
                         // is handed, without the typist noticing.
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .focused($bodyFocused)
                         .accessibilityIdentifier("noteBody")
                 }
             }
@@ -58,6 +60,11 @@ struct NoteEditorView: View {
                 noteId = id
                 text = store.note(id)?.body ?? ""
             }
+        }
+        // A new note opens ready to type, as on Android. An existing one opens to be read first.
+        .task {
+            guard case .new = target else { return }
+            bodyFocused = true
         }
         // Debounced autosave: persist shortly after typing stops.
         .task(id: text) {

@@ -178,6 +178,25 @@ final class NoteFlowTests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [switched], timeout: 10), .completed, "in preview the toggle should offer Edit")
     }
 
+    func testANewNoteOpensReadyToType() {
+        launchFresh()
+
+        // No tap on the page first: the keyboard is already up for it, as on Android.
+        tap(app.buttons["newNote"], "the new-note button")
+        let body = app.textViews["noteBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 20), "the editor never opened")
+        expectKeyboard(on: body, "a new note opened without the keyboard")
+        body.typeText("# Typed at once")
+        tap(app.buttons["doneEditing"], "Done")
+        expectTitles(["Typed at once"])
+
+        // An existing note opens to be read, not with the keyboard over it.
+        openNote(titled: "Typed at once")
+        XCTAssertTrue(body.waitForExistence(timeout: 20), "the editor never opened")
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.keyboards.firstMatch.exists, "an existing note opened with the keyboard up")
+    }
+
     // MARK: - Driving the app
 
     private func launchFresh() {
@@ -229,6 +248,16 @@ final class NoteFlowTests: XCTestCase {
         let clear = field.buttons.firstMatch
         if clear.exists { clear.tap() }
         typeOnceFocused(field, text) { field.tap() }
+    }
+
+    private func expectKeyboard(
+        on element: XCUIElement,
+        _ message: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: element)
+        XCTAssertEqual(XCTWaiter().wait(for: [focused], timeout: 10), .completed, message, file: file, line: line)
     }
 
     /// Types only once [element] has the keyboard, and taps it again with [refocus] if it never
