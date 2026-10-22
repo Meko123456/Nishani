@@ -197,6 +197,44 @@ final class NoteFlowTests: XCTestCase {
         XCTAssertFalse(app.keyboards.firstMatch.exists, "an existing note opened with the keyboard up")
     }
 
+    func testTheHomeScreenQuickActionStartsABlankNote() {
+        launchFresh()
+
+        // Half way through a new note when the app is left for the Home Screen.
+        tap(app.buttons["newNote"], "the new-note button")
+        let body = app.textViews["noteBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 20), "the editor never opened")
+        expectKeyboard(on: body, "a new note opened without the keyboard")
+        body.typeText("# Half a thought")
+
+        useQuickAction("io.github.meko123456.nishani.new-note")
+
+        // A blank page with the keyboard up, not the note that was open.
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20), "the quick action did not bring Nishani back")
+        expectKeyboard(on: body, "the quick action's note opened without the keyboard")
+        XCTAssertEqual(body.value as? String ?? "", "", "the quick action reopened the note that was open")
+        body.typeText("# From the Home Screen")
+        tap(app.buttons["doneEditing"], "Done")
+
+        // The note that was open was saved as its editor went.
+        expectTitles(["From the Home Screen", "Half a thought"])
+    }
+
+    func testTheQuickActionOpensANoteWhenItStartsTheApp() {
+        launchFresh()
+        app.terminate()
+
+        // Started by the quick action, so without this test's settings: only the editor is
+        // checked, and nothing is typed or saved into the simulator's own notes.
+        useQuickAction("io.github.meko123456.nishani.new-note")
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30), "the quick action did not start Nishani")
+        let body = app.textViews["noteBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 30), "Nishani started on the list, not a new note")
+        expectKeyboard(on: body, "the new note opened without the keyboard")
+        XCTAssertEqual(body.value as? String ?? "", "")
+        tap(app.buttons["doneEditing"], "Done")
+    }
+
     // MARK: - Driving the app
 
     private func launchFresh() {
@@ -236,6 +274,45 @@ final class NoteFlowTests: XCTestCase {
         tap(body, "the editor")
         typeOnceFocused(body, markdown) { body.tap() }
         tap(app.buttons["doneEditing"], "Done")
+    }
+
+    /// Picks a Home Screen quick action the way a person does: a long press on Nishani's icon,
+    /// then the action in the menu that opens. [type] is the action's UIApplicationShortcutItemType,
+    /// which SpringBoard uses as the menu row's identifier.
+    ///
+    /// SpringBoard never reports itself idle while that menu is open, so every event sent while it
+    /// is up first waits out XCUITest's 60-second idle timeout. When the menu opens below the icon,
+    /// its first row is the app's own action, and one press that slides onto that row and lets go
+    /// is a single event, sent before the menu exists. Otherwise it is a press, then a tap, and two
+    /// of those waits.
+    private func useQuickAction(_ type: String) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCUIDevice.shared.press(.home)
+        // Again, which takes the Home Screen back to its first page. An icon on another page has
+        // an empty frame, which says nothing about which way it is, so the search starts there.
+        XCUIDevice.shared.press(.home)
+        let icon = springboard.icons["Nishani"]
+        XCTAssertTrue(icon.waitForExistence(timeout: 30), "Nishani is not on the Home Screen")
+        // A newly installed app goes on the last page.
+        var pages = 0
+        while !icon.isHittable && pages < 5 {
+            springboard.swipeLeft()
+            pages += 1
+        }
+
+        let frame = icon.frame
+        let origin = springboard.coordinate(withNormalizedOffset: .zero)
+        // The frame takes in the name under the picture; the press goes on the picture.
+        let picture = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.width / 2))
+        if frame.maxY + 320 < springboard.frame.maxY {
+            let firstRow = origin.withOffset(CGVector(dx: frame.midX, dy: frame.maxY + 21))
+            picture.press(forDuration: 1.0, thenDragTo: firstRow, withVelocity: .slow, thenHoldForDuration: 0.3)
+        } else {
+            picture.press(forDuration: 1.0)
+            let action = springboard.buttons[type]
+            XCTAssertTrue(action.waitForExistence(timeout: 15), "the icon's menu has no \(type)")
+            action.tap()
+        }
     }
 
     private func openNote(titled title: String) {

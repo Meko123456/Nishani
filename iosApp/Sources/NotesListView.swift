@@ -3,6 +3,7 @@ import Shared
 
 struct NotesListView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var quickActions: QuickActions
     @State private var editing: EditorTarget?
     /// The note a swipe asked to delete, held while the question is up.
     @State private var pendingDelete: PendingNoteDelete?
@@ -86,7 +87,7 @@ struct NotesListView: View {
             .searchable(text: $store.query, prompt: "Search notes")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button { editing = .new } label: { Image(systemName: "plus") }
+                    Button { editing = .new() } label: { Image(systemName: "plus") }
                         .accessibilityIdentifier("newNote")
                         .accessibilityLabel("New note")
                 }
@@ -94,7 +95,18 @@ struct NotesListView: View {
             .sheet(item: $editing) { target in
                 NoteEditorView(target: target).environmentObject(store)
             }
+            // The Home Screen's Write a new note: on launch, or later while the app is running.
+            .onAppear(perform: takeQuickAction)
+            .onChange(of: quickActions.pending) { _ in takeQuickAction() }
         }
+    }
+
+    private func takeQuickAction() {
+        guard quickActions.pending == .newNote else { return }
+        quickActions.pending = nil
+        // A blank page even if another note is open: the sheet swaps, and the open note is saved
+        // as its editor goes.
+        editing = .new()
     }
 }
 
@@ -105,11 +117,13 @@ private struct PendingNoteDelete {
 }
 
 enum EditorTarget: Identifiable {
-    case new
+    /// A note not written yet. Each opening has its own id, so a quick action that arrives while
+    /// a new note is open still starts a blank one.
+    case new(UUID = UUID())
     case existing(String)
     var id: String {
         switch self {
-        case .new: return "new"
+        case .new(let opening): return "new-\(opening)"
         case .existing(let id): return id
         }
     }
