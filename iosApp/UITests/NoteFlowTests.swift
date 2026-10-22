@@ -60,6 +60,32 @@ final class NoteFlowTests: XCTestCase {
         XCTAssertEqual(paragraph.label, "Buy bread and milk.")
     }
 
+    func testAQuoteWrittenOverLinesIsOneQuote() {
+        launchFresh()
+
+        // A bare ">" between two quotes, and a last line without its ">".
+        writeNote("""
+        # Proverb
+        > The best time to plant a tree
+        > was twenty years ago.
+        >
+        > The second best time
+        is now.
+        """)
+
+        openNote(titled: "Proverb")
+        tap(app.buttons["togglePreview"], "the preview toggle")
+
+        // Each "> " line was a quote of its own, the bare ">" an empty one, and the last line a
+        // paragraph under them: five blocks where there are two quotes.
+        let quotes = app.staticTexts.matching(identifier: "md-quote")
+        XCTAssertTrue(quotes.firstMatch.waitForExistence(timeout: 20), "the preview produced no quote")
+        XCTAssertEqual(quotes.count, 2)
+        XCTAssertEqual(quotes.element(boundBy: 0).label, "The best time to plant a tree was twenty years ago.")
+        XCTAssertEqual(quotes.element(boundBy: 1).label, "The second best time is now.")
+        XCTAssertEqual(app.staticTexts.matching(identifier: "md-paragraph").count, 0, "the line without a \">\" left the quote")
+    }
+
     func testTheListTitleAndTheSearchBothComeFromTheSharedModule() {
         launchFresh()
 

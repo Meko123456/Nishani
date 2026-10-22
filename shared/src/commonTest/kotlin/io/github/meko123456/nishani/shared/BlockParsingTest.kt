@@ -47,6 +47,55 @@ class BlockParsingTest {
     }
 
     @Test
+    fun consecutiveQuoteLinesAreOneQuote() {
+        val quote = MarkdownParser.parse("> The best time to plant a tree\n> was twenty years ago.").single()
+        assertEquals(
+            listOf(MdSpan.Text("The best time to plant a tree was twenty years ago.")),
+            (quote as MdBlock.Quote).spans,
+        )
+    }
+
+    @Test
+    fun aBareQuoteMarkerSeparatesQuotesInsteadOfMakingAnEmptyOne() {
+        assertEquals(
+            listOf(MdBlock.Quote(listOf(MdSpan.Text("first"))), MdBlock.Quote(listOf(MdSpan.Text("second")))),
+            MarkdownParser.parse("> first\n>\n> second"),
+        )
+        assertEquals(emptyList(), MarkdownParser.parse(">"))
+    }
+
+    @Test
+    fun aQuoteEndsAtABlankLine() {
+        assertEquals(
+            listOf(
+                MdBlock.Paragraph(listOf(MdSpan.Text("before"))),
+                MdBlock.Quote(listOf(MdSpan.Text("quoted"))),
+                MdBlock.Paragraph(listOf(MdSpan.Text("after"))),
+            ),
+            MarkdownParser.parse("before\n> quoted\n\nafter"),
+        )
+    }
+
+    /** CommonMark's laziness: the lines after a quote's first may leave out the ">". */
+    @Test
+    fun aPlainLineStraightAfterAQuoteContinuesIt() {
+        assertEquals(
+            listOf(MdBlock.Quote(listOf(MdSpan.Text("one two three")))),
+            MarkdownParser.parse("> one\ntwo\n> three"),
+        )
+    }
+
+    /** Only paragraph text is lazy: a list item, a heading or a rule after a quote is its own block. */
+    @Test
+    fun onlyParagraphTextContinuesAQuote() {
+        val quoted = MdBlock.Quote(listOf(MdSpan.Text("quoted")))
+        assertEquals(listOf(quoted, MdBlock.BulletItem(listOf(MdSpan.Text("item")))), MarkdownParser.parse("> quoted\n- item"))
+        assertEquals(listOf(quoted, MdBlock.Heading(2, listOf(MdSpan.Text("Next")))), MarkdownParser.parse("> quoted\n## Next"))
+        assertEquals(listOf(quoted, MdBlock.Divider), MarkdownParser.parse("> quoted\n---"))
+        assertEquals(listOf(quoted, MdBlock.Paragraph(listOf(MdSpan.Text("after")))), MarkdownParser.parse("> quoted\n>\nafter"))
+    }
+
+    @Test
     fun parsesFencedCodeWithLanguage() {
         val code = MarkdownParser.parse("```kotlin\nval x = 1\n```").single() as MdBlock.CodeBlock
         assertEquals("kotlin", code.language)

@@ -71,8 +71,19 @@ object MarkdownParser {
         val blocks = mutableListOf<MdBlock>()
         val lines = text.replace("\r\n", "\n").split("\n")
         val paragraph = mutableListOf<String>()
+        val quote = mutableListOf<String>()
+
+        // Consecutive "> " lines are one quote, joined like a paragraph's lines. Each used to be a
+        // quote of its own, so a quotation broken over lines showed as a stack of boxes.
+        fun flushQuote() {
+            if (quote.isNotEmpty()) {
+                blocks += MdBlock.Quote(parseInline(quote.joinToString(" ")))
+                quote.clear()
+            }
+        }
 
         fun flushParagraph() {
+            flushQuote()
             if (paragraph.isNotEmpty()) {
                 blocks += MdBlock.Paragraph(parseInline(paragraph.joinToString(" ")))
                 paragraph.clear()
@@ -118,8 +129,11 @@ object MarkdownParser {
                             blocks += heading
                         }
                         trimmed.startsWith("> ") || trimmed == ">" -> {
-                            flushParagraph()
-                            blocks += MdBlock.Quote(parseInline(trimmed.removePrefix(">").trim()))
+                            val text = trimmed.removePrefix(">").trim()
+                            if (paragraph.isNotEmpty()) flushParagraph()
+                            // A bare ">" separates paragraphs within a quote. It used to come out
+                            // as a quote with nothing in it, an empty box between the two.
+                            if (text.isEmpty()) flushQuote() else quote += text
                         }
                         bullet != null -> {
                             flushParagraph()
@@ -129,7 +143,9 @@ object MarkdownParser {
                             flushParagraph()
                             blocks += ordered
                         }
-                        else -> paragraph += trimmed
+                        // CommonMark's laziness: a plain line straight after a quote's lines carries on
+                        // its paragraph, ">" or not. It used to start a paragraph of its own.
+                        else -> if (quote.isNotEmpty()) quote += trimmed else paragraph += trimmed
                     }
                     i++
                 }
