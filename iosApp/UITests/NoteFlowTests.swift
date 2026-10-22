@@ -86,6 +86,27 @@ final class NoteFlowTests: XCTestCase {
         XCTAssertEqual(app.staticTexts.matching(identifier: "md-paragraph").count, 0, "the line without a \">\" left the quote")
     }
 
+    func testABulletWrappedByHandIsOneBullet() {
+        launchFresh()
+
+        writeNote("""
+        # Packing
+        - a warm jacket, because the pass
+          is cold even in June
+        - water
+        """)
+
+        openNote(titled: "Packing")
+        tap(app.buttons["togglePreview"], "the preview toggle")
+
+        // The wrapped line was a paragraph of its own, between the two bullets.
+        let bullets = app.staticTexts.matching(identifier: "md-bullet")
+        XCTAssertTrue(bullets.firstMatch.waitForExistence(timeout: 20), "the preview produced no bullet")
+        XCTAssertEqual(bullets.count, 2)
+        XCTAssertEqual(bullets.element(boundBy: 0).label, "a warm jacket, because the pass is cold even in June")
+        XCTAssertEqual(app.staticTexts.matching(identifier: "md-paragraph").count, 0, "the wrapped line left the bullet")
+    }
+
     func testTheListTitleAndTheSearchBothComeFromTheSharedModule() {
         launchFresh()
 

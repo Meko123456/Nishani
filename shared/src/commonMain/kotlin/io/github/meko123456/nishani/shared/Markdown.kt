@@ -72,6 +72,9 @@ object MarkdownParser {
         val lines = text.replace("\r\n", "\n").split("\n")
         val paragraph = mutableListOf<String>()
         val quote = mutableListOf<String>()
+        // The open list item's lines, and how to make the item from them once they are all in.
+        val item = mutableListOf<String>()
+        var makeItem: ((List<MdSpan>) -> MdBlock)? = null
 
         // Consecutive "> " lines are one quote, joined like a paragraph's lines. Each used to be a
         // quote of its own, so a quotation broken over lines showed as a stack of boxes.
@@ -82,12 +85,25 @@ object MarkdownParser {
             }
         }
 
-        fun flushParagraph() {
-            flushQuote()
+        fun flushItem() {
+            val make = makeItem ?: return
+            blocks += make(parseInline(item.joinToString(" ")))
+            item.clear()
+            makeItem = null
+        }
+
+        fun flushText() {
             if (paragraph.isNotEmpty()) {
                 blocks += MdBlock.Paragraph(parseInline(paragraph.joinToString(" ")))
                 paragraph.clear()
             }
+        }
+
+        // Ends whatever is open: a paragraph, a quote or a list item.
+        fun flushParagraph() {
+            flushQuote()
+            flushItem()
+            flushText()
         }
 
         var i = 0
@@ -130,22 +146,30 @@ object MarkdownParser {
                         }
                         trimmed.startsWith("> ") || trimmed == ">" -> {
                             val text = trimmed.removePrefix(">").trim()
-                            if (paragraph.isNotEmpty()) flushParagraph()
+                            flushItem()
+                            flushText()
                             // A bare ">" separates paragraphs within a quote. It used to come out
                             // as a quote with nothing in it, an empty box between the two.
                             if (text.isEmpty()) flushQuote() else quote += text
                         }
                         bullet != null -> {
                             flushParagraph()
-                            blocks += bullet
+                            item += bullet
+                            makeItem = { spans -> MdBlock.BulletItem(spans) }
                         }
                         ordered != null -> {
                             flushParagraph()
-                            blocks += ordered
+                            item += ordered.second
+                            makeItem = { spans -> MdBlock.OrderedItem(ordered.first, spans) }
                         }
-                        // CommonMark's laziness: a plain line straight after a quote's lines carries on
-                        // its paragraph, ">" or not. It used to start a paragraph of its own.
-                        else -> if (quote.isNotEmpty()) quote += trimmed else paragraph += trimmed
+                        // A plain line straight after a quote or a list item carries on its text, as in
+                        // CommonMark. It used to start a paragraph of its own, so a quotation whose later
+                        // lines had no ">", or a list item wrapped by hand, split in two.
+                        else -> when {
+                            quote.isNotEmpty() -> quote += trimmed
+                            makeItem != null -> item += trimmed
+                            else -> paragraph += trimmed
+                        }
                     }
                     i++
                 }
@@ -200,19 +224,21 @@ object MarkdownParser {
         return MdBlock.Heading(hashes, parseInline(line.substring(hashes + 1).trim()))
     }
 
-    private fun bulletOf(line: String): MdBlock.BulletItem? {
+    /** A bullet item's text, after its marker. */
+    private fun bulletOf(line: String): String? {
         val marker = line.take(2)
         if (marker != "- " && marker != "* " && marker != "+ ") return null
-        return MdBlock.BulletItem(parseInline(line.substring(2).trim()))
+        return line.substring(2).trim()
     }
 
-    private fun orderedOf(line: String): MdBlock.OrderedItem? {
+    /** An ordered item's number and its text, after the marker. */
+    private fun orderedOf(line: String): Pair<Int, String>? {
         val digits = line.takeWhile { it.isDigit() }
         if (digits.isEmpty() || digits.length > 9) return null
         val afterDigits = line.drop(digits.length)
         if (!afterDigits.startsWith(". ") && !afterDigits.startsWith(") ")) return null
         val number = digits.toIntOrNull() ?: return null
-        return MdBlock.OrderedItem(number, parseInline(afterDigits.drop(2).trim()))
+        return number to afterDigits.drop(2).trim()
     }
 
     // --- inline helpers: each returns the span and how many chars it consumed ---

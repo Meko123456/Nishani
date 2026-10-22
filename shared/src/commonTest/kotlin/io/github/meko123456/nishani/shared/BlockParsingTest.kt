@@ -40,6 +40,36 @@ class BlockParsingTest {
         assertEquals(10, (blocks[2] as MdBlock.OrderedItem).number)
     }
 
+    /** As in CommonMark: a list item wrapped by hand is one item, indented or not. */
+    @Test
+    fun aPlainLineStraightAfterAListItemContinuesIt() {
+        assertEquals(
+            listOf(MdBlock.BulletItem(listOf(MdSpan.Text("a long bullet that wraps onto the next line")))),
+            MarkdownParser.parse("- a long bullet that\n  wraps onto the next line"),
+        )
+        assertEquals(
+            listOf(
+                MdBlock.OrderedItem(1, listOf(MdSpan.Text("first, carried on"))),
+                MdBlock.OrderedItem(2, listOf(MdSpan.Text("second"))),
+            ),
+            MarkdownParser.parse("1. first,\ncarried on\n2. second"),
+        )
+        // Inline marks still work across the join.
+        assertEquals(
+            listOf(MdBlock.BulletItem(listOf(MdSpan.Text("buy "), MdSpan.Bold("fresh bread"), MdSpan.Text(" today")))),
+            MarkdownParser.parse("- buy **fresh\nbread** today"),
+        )
+    }
+
+    @Test
+    fun aListItemEndsAtABlankLineOrAnotherBlock() {
+        val one = MdBlock.BulletItem(listOf(MdSpan.Text("one")))
+        assertEquals(listOf(one, MdBlock.Paragraph(listOf(MdSpan.Text("two")))), MarkdownParser.parse("- one\n\ntwo"))
+        assertEquals(listOf(one, MdBlock.Heading(2, listOf(MdSpan.Text("Next")))), MarkdownParser.parse("- one\n## Next"))
+        assertEquals(listOf(one, MdBlock.Quote(listOf(MdSpan.Text("said")))), MarkdownParser.parse("- one\n> said"))
+        assertEquals(listOf(one, MdBlock.Divider), MarkdownParser.parse("- one\n---"))
+    }
+
     @Test
     fun parsesQuote() {
         val quote = MarkdownParser.parse("> to be").single()
