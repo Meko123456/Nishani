@@ -39,6 +39,9 @@ platform renders it natively (Compose `AnnotatedString`, SwiftUI `Text`).
 - 🔎 **Search** across all notes (shared, case-insensitive).
 - 💾 **Debounced autosave**, offline-first local storage.
 - 📤 **Share** a note via the system share sheet.
+- ➕ **A new note from the app icon:** a long press offers *Write a new note* (a launcher
+  shortcut on Android, a Home Screen quick action on iOS), which opens a blank note with the
+  keyboard up. On Android, text shared from another app opens as a new note too.
 - 🎨 Material 3 on Android (dynamic color, light/dark); native look on iOS.
 
 ## Tech
