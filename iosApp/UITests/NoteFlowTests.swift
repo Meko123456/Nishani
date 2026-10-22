@@ -334,32 +334,42 @@ final class NoteFlowTests: XCTestCase {
     /// of those waits.
     private func useQuickAction(_ type: String) {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        XCUIDevice.shared.press(.home)
-        // Again, which takes the Home Screen back to its first page. An icon on another page has
-        // an empty frame, which says nothing about which way it is, so the search starts there.
-        XCUIDevice.shared.press(.home)
         let icon = springboard.icons["Nishani"]
-        XCTAssertTrue(icon.waitForExistence(timeout: 30), "Nishani is not on the Home Screen")
-        // A newly installed app goes on the last page.
-        var pages = 0
-        while !icon.isHittable && pages < 5 {
-            springboard.swipeLeft()
-            pages += 1
+
+        // The Home Screen, at the page with Nishani's icon.
+        func showIcon() {
+            XCUIDevice.shared.press(.home)
+            // Again, which takes the Home Screen back to its first page, and out of its edit mode.
+            // An icon on another page has an empty frame, which says nothing about which way it is,
+            // so the search starts there.
+            XCUIDevice.shared.press(.home)
+            XCTAssertTrue(icon.waitForExistence(timeout: 30), "Nishani is not on the Home Screen")
+            // A newly installed app goes on the last page.
+            var pages = 0
+            while !icon.isHittable && pages < 5 {
+                springboard.swipeLeft()
+                pages += 1
+            }
         }
 
+        showIcon()
         let frame = icon.frame
-        let origin = springboard.coordinate(withNormalizedOffset: .zero)
-        // The frame takes in the name under the picture; the press goes on the picture.
-        let picture = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.width / 2))
         if frame.maxY + 320 < springboard.frame.maxY {
+            let origin = springboard.coordinate(withNormalizedOffset: .zero)
+            // The frame takes in the name under the picture; the press goes on the picture.
+            let picture = origin.withOffset(CGVector(dx: frame.midX, dy: frame.minY + frame.width / 2))
             let firstRow = origin.withOffset(CGVector(dx: frame.midX, dy: frame.maxY + 21))
-            picture.press(forDuration: 1.0, thenDragTo: firstRow, withVelocity: .slow, thenHoldForDuration: 0.3)
-        } else {
-            picture.press(forDuration: 1.0)
-            let action = springboard.buttons[type]
-            XCTAssertTrue(action.waitForExistence(timeout: 15), "the icon's menu has no \(type)")
-            action.tap()
+            picture.press(forDuration: 1.5, thenDragTo: firstRow, withVelocity: .slow, thenHoldForDuration: 0.3)
+            if app.wait(for: .runningForeground, timeout: 10) { return }
+            // The slide picked nothing. On a slow runner it can start before the menu is up (the run
+            // for 19863c3, 22 October 2026, never started the app), and one that ends off the menu
+            // leaves the Home Screen in its edit mode. Back to the icon, then the slow way.
+            showIcon()
         }
+        icon.press(forDuration: 1.5)
+        let action = springboard.buttons[type]
+        XCTAssertTrue(action.waitForExistence(timeout: 15), "the icon's menu has no \(type)")
+        action.tap()
     }
 
     private func openNote(titled title: String) {
