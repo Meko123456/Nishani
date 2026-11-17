@@ -133,6 +133,13 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          # This job only needs the Gradle home the build job already saved; saving its own would be
+          # a second copy of the same. And a save from a failed attempt is a trap: on 17 November the
+          # first attempt couldn't resolve the Kotlin Multiplatform plugin (the plugin portal was
+          # answering badly for a minute), saved its home anyway, and the rerun restored exactly that
+          # and failed the same way while the portal was serving the same plugin to other repos.
+          cache-read-only: true
 
       # CI has no release key, so the build comes out unsigned. Any key will do for installing it
       # on a throwaway emulator, so this makes one up.
