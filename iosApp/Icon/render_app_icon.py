@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""Renders the iOS app icon from the Android launcher icon's layers, so the icon is drawn once.
+"""Renders the iOS app icons from the Android launcher icon's layers, so the icon is drawn once.
 
 A vector drawable's path data is already SVG, so each <path> is carried across as it is: fills,
 strokes and their caps and joins, alpha, and the linear gradients aapt inlines as
 <aapt:attr name="android:fillColor">. The background and foreground layers are stacked, cropped to
 the middle of the 108dp adaptive-icon canvas and rasterised by headless Chrome at 1024x1024, the one
-size an iOS asset catalog needs. The alpha channel is dropped on the way out: an app icon that has
-one is refused at upload, even when every pixel is opaque.
+size an iOS asset catalog needs. The alpha channel is dropped from the light icon on the way out:
+an app icon that has one is refused at upload, even when every pixel is opaque.
+
+iOS 18 Home Screens can be dark or tinted, and an app that ships only its light icon gets the
+system's own guess at the other two. So three come out: the icon as it is; a dark one, the same
+glyph on the orange gradient dimmed to a third of its brightness, so it sits with the dark tiles
+instead of shouting among them; and a tinted one, the glyph alone in grayscale on transparency,
+which the system colours with the user's tint, the same picture the launcher's monochrome layer
+makes on Android.
 
     python3 iosApp/Icon/render_app_icon.py
 
@@ -20,14 +27,17 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LAYERS = [
     ROOT / "androidApp/src/main/res/drawable/ic_launcher_background.xml",
     ROOT / "androidApp/src/main/res/drawable/ic_launcher_foreground.xml",
 ]
-OUT = ROOT / "iosApp/Sources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+ICONSET = ROOT / "iosApp/Sources/Assets.xcassets/AppIcon.appiconset"
+BACKGROUND, FOREGROUND = LAYERS
+# How much of the gradient's brightness the dark icon keeps.
+DARK = 0.34
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 
@@ -88,9 +98,9 @@ def paths(layer: pathlib.Path, prefix: str) -> tuple[list[str], list[str]]:
     return defs, out
 
 
-def svg() -> str:
+def svg(layers: list[pathlib.Path]) -> str:
     defs, body = [], []
-    for n, layer in enumerate(LAYERS):
+    for n, layer in enumerate(layers):
         d, p = paths(layer, f"g{n}_")
         defs += d
         body += p
@@ -100,19 +110,34 @@ def svg() -> str:
     )
 
 
+def render(layers: list[pathlib.Path], tmp: str) -> Image.Image:
+    """[layers] rasterised by headless Chrome on a transparent page, as RGBA."""
+    page = pathlib.Path(tmp, "icon.html")
+    page.write_text(f'<html><body style="margin:0;background:transparent">{svg(layers)}</body></html>')
+    shot = pathlib.Path(tmp, "icon.png")
+    subprocess.run(
+        [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
+         "--default-background-color=00000000", f"--window-size={SIZE},{SIZE}", f"--screenshot={shot}",
+         page.as_uri()],
+        check=True, capture_output=True,
+    )
+    return Image.open(shot).convert("RGBA")
+
+
 def main() -> None:
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+    ICONSET.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        page = pathlib.Path(tmp, "icon.html")
-        page.write_text(f'<html><body style="margin:0">{svg()}</body></html>')
-        shot = pathlib.Path(tmp, "icon.png")
-        subprocess.run(
-            [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
-             f"--window-size={SIZE},{SIZE}", f"--screenshot={shot}", page.as_uri()],
-            check=True, capture_output=True,
-        )
-        Image.open(shot).convert("RGB").save(OUT, optimize=True)
-    print(OUT.relative_to(ROOT))
+        background = render([BACKGROUND], tmp)
+        foreground = render([FOREGROUND], tmp)
+        light = Image.alpha_composite(background, foreground)
+        light.convert("RGB").save(ICONSET / "AppIcon.png", optimize=True)
+        dark = Image.alpha_composite(ImageEnhance.Brightness(background).enhance(DARK), foreground)
+        dark.convert("RGB").save(ICONSET / "AppIcon-Dark.png", optimize=True)
+        # Grayscale with the glyph's own alpha: what the tint is applied to.
+        tinted = Image.merge("LA", (foreground.convert("L"), foreground.getchannel("A")))
+        tinted.save(ICONSET / "AppIcon-Tinted.png", optimize=True)
+    for name in ("AppIcon.png", "AppIcon-Dark.png", "AppIcon-Tinted.png"):
+        print((ICONSET / name).relative_to(ROOT))
 
 
 if __name__ == "__main__":
